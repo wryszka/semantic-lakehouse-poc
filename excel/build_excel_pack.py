@@ -4,6 +4,7 @@
 Run: uv run --with openpyxl --native-tls build_excel_pack.py
 """
 import json
+import os
 import subprocess
 import urllib.request
 
@@ -11,8 +12,8 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-HOST = "https://fevm-lr-dev-aws-us.cloud.databricks.com"
-WAREHOUSE = "a3b61648ea4809e3"
+HOST = os.environ.get("DATABRICKS_HOST", "https://REPLACE-ME.cloud.databricks.com")
+WAREHOUSE = os.environ.get("DATABRICKS_WAREHOUSE_ID", "REPLACE-ME")
 HTTP_PATH = f"/sql/1.0/warehouses/{WAREHOUSE}"
 BAU_SQL = "SELECT * FROM lr_dev_aws_us_catalog.semantic_lakehouse.vw_bau_premiums_by_sector"
 PIVOT_SQL = ("SELECT month, year, sector, gross_written_premium, earned_premium, claims_incurred, "
@@ -20,7 +21,7 @@ PIVOT_SQL = ("SELECT month, year, sector, gross_written_premium, earned_premium,
              "loss_ratio_rolling_12m FROM lr_dev_aws_us_catalog.semantic_lakehouse.vw_underwriting_monthly "
              "WHERE year >= 2024")
 
-tok = json.loads(subprocess.run(["databricks", "auth", "token", "-p", "DEV"],
+tok = json.loads(subprocess.run(["databricks", "auth", "token", "-p", os.environ.get("DATABRICKS_PROFILE", "REPLACE-ME")],
                                 capture_output=True, text=True).stdout)["access_token"]
 
 

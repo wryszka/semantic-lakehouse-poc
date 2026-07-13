@@ -12,9 +12,11 @@ import sys
 import time
 import urllib.request
 
-PROFILE = "DEV"
-HOST = "https://fevm-lr-dev-aws-us.cloud.databricks.com"
-WAREHOUSE = "a3b61648ea4809e3"
+import os
+
+PROFILE = os.environ.get("DATABRICKS_PROFILE", "REPLACE-ME")
+HOST = os.environ.get("DATABRICKS_HOST", "https://REPLACE-ME.cloud.databricks.com")
+WAREHOUSE = os.environ.get("DATABRICKS_WAREHOUSE_ID", "REPLACE-ME")
 
 
 def token():

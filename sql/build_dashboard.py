@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Create + publish the Underwriting Performance Lakeview dashboard (DEV)."""
 import json
+import os
 import subprocess
 
 MV = "lr_dev_aws_us_catalog.semantic_lakehouse.mv_underwriting"
 WV = "lr_dev_aws_us_catalog.semantic_lakehouse.vw_underwriting_monthly"
-WAREHOUSE = "a3b61648ea4809e3"
-PROFILE = "DEV"
+WAREHOUSE = os.environ.get("DATABRICKS_WAREHOUSE_ID", "REPLACE-ME")
+PROFILE = os.environ.get("DATABRICKS_PROFILE", "REPLACE-ME")
 PARENT = "/Workspace/Shared/semantic-lakehouse-poc"
 
 datasets = [
@@ -140,4 +141,5 @@ pub = subprocess.run(["databricks", "api", "post", f"/api/2.0/lakeview/dashboard
                       "-p", PROFILE, "--json", json.dumps({"warehouse_id": WAREHOUSE, "embed_credentials": True})],
                      capture_output=True, text=True)
 print("publish:", "OK" if pub.returncode == 0 else pub.stderr[:1000])
-print(f"URL: https://fevm-lr-dev-aws-us.cloud.databricks.com/dashboardsv3/{did}/published")
+host = os.environ.get("DATABRICKS_HOST", "https://REPLACE-ME.cloud.databricks.com")
+print(f"URL: {host}/dashboardsv3/{did}/published")
