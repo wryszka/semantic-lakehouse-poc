@@ -158,6 +158,14 @@ addin_lines = [
     ("  3. Pivot on the imported data, or run a custom SQL query if you prefer", False),
     ("  4. Data refreshes on demand from the same governed definitions as Genie and dashboards", False),
     ("", False),
+    ("USE THE METRIC VIEW AS 'THE MODEL' (pivot mode - no SQL, no joins)", True),
+    ("  1. In the add-in: Import method = 'Select data'  >  pick mv_underwriting from the catalog", False),
+    ("  2. The picker shows the metric view's DIMENSIONS and MEASURES by business name -", False),
+    ("     Sector, Region, Channel, Gross Written Premium, Loss Ratio ... (joins are inside the view)", False),
+    ("  3. Tick the 'Pivot Data' checkbox  >  configure Rows / Columns / Values / Filters  >  import", False),
+    ("  4. Result: the pivot experience of a semantic model, defined once in Unity Catalog.", False),
+    ("     Seeing Sum(measure) in results is expected - no double aggregation occurs.", False),
+    ("", False),
     ("CENTRAL DEPLOYMENT (IT - for users who cannot install add-ins)", True),
     ("  1. Deploy via the Microsoft 365 admin center (Marketplace app or custom manifest)", False),
     ("  2. Microsoft Entra: grant admin consent to the Databricks enterprise application", False),
@@ -175,6 +183,63 @@ for i, (txt, bold) in enumerate(addin_lines, 1):
     if bold:
         cell.font = Font(bold=True)
 ws4.column_dimensions["A"].width = 110
+
+
+# Sheet 5: Excel Data Model template - the multi-table PivotTable Fields experience,
+# connected DIRECTLY to Databricks (no cube, no Power BI in the path).
+ws5 = wb.create_sheet("Data Model Template (build)")
+dm_lines = [
+    ("Excel Data Model template - the 'connect to a model' experience, direct to Databricks", True),
+    ("Build this ONCE (~15 min, Excel for Windows), distribute the workbook as a template.", False),
+    ("Users open it, hit Data > Refresh All, and pivot across facts and dimensions with named", False),
+    ("measures - the classic multi-table PivotTable Fields pane, no joins, no SQL.", False),
+    ("", False),
+    ("STEP 1 - CONNECT AND LOAD THE STAR (6 tables)", True),
+    ("  Data > Get Data > From Other Sources > From ODBC (or the Databricks connector)", False),
+    ("  Select these tables from lr_dev_aws_us_catalog.semantic_lakehouse:", False),
+    ("    dim_date, dim_product, dim_geography, dim_channel, fct_premiums, fct_claims", False),
+    ("  For EACH: Load To... > 'Only Create Connection' + TICK 'Add this data to the Data Model'", False),
+    ("  (Large real-world facts: point at 7-year / pre-aggregated views instead - import physics apply)", False),
+    ("", False),
+    ("STEP 2 - RELATIONSHIPS (mirror the Unity Catalog foreign keys - see the ERD export)", True),
+    ("  Power Pivot > Manage > Diagram View. Drag these 8 relationships:", False),
+    ("    fct_premiums.date_key     -> dim_date.date_key", False),
+    ("    fct_premiums.product_key  -> dim_product.product_key", False),
+    ("    fct_premiums.geo_key      -> dim_geography.geo_key", False),
+    ("    fct_premiums.channel_key  -> dim_channel.channel_key", False),
+    ("    fct_claims.date_key       -> dim_date.date_key", False),
+    ("    fct_claims.product_key    -> dim_product.product_key", False),
+    ("    fct_claims.geo_key        -> dim_geography.geo_key", False),
+    ("    fct_claims.channel_key    -> dim_channel.channel_key", False),
+    ("", False),
+    ("STEP 3 - MEASURES (mirror the metric view, DAX)", True),
+    ("  Power Pivot > Measures > New Measure (or type in the calculation area):", False),
+    ("    Gross Written Premium := SUM(fct_premiums[gross_written_premium])", False),
+    ("    Earned Premium        := SUM(fct_premiums[earned_premium])", False),
+    ("    Claims Incurred       := SUM(fct_claims[claims_incurred])", False),
+    ("    Policy Count          := SUM(fct_premiums[policy_count])", False),
+    ("    Claim Count           := SUM(fct_claims[claim_count])", False),
+    ("    Loss Ratio            := DIVIDE([Claims Incurred], [Earned Premium])   (format as %)", False),
+    ("  Note: DIVIDE recomputes at every pivot grain, so the loss-ratio grand total is CORRECT", False),
+    ("  by construction here - the non-additivity guardrail comes for free in the data model.", False),
+    ("", False),
+    ("STEP 4 - THE PIVOT", True),
+    ("  Insert > PivotTable > From Data Model. The PivotTable Fields pane now lists all six", False),
+    ("  tables and the named measures - tick and drag, exactly the legacy-cube experience.", False),
+    ("", False),
+    ("GOVERNANCE RULES FOR THE TEMPLATE", True),
+    ("  - Relationships MUST mirror the declared UC foreign keys (regenerate the ERD to check)", False),
+    ("  - Measures MUST mirror the metric view definitions - the template is a projection,", False),
+    ("    never the place where a metric is invented", False),
+    ("  - Treat the template as a versioned, centrally owned artifact; users get copies", False),
+    ("  - Trade-off vs the add-in: familiar native pane, but data is imported on refresh (not", False),
+    ("    live) and the model definition lives in the file - governed by process, not platform", False),
+]
+for i, (txt, bold) in enumerate(dm_lines, 1):
+    cell = ws5.cell(row=i, column=1, value=txt)
+    if bold:
+        cell.font = Font(bold=True)
+ws5.column_dimensions["A"].width = 110
 
 wb.save("underwriting_bau_report.xlsx")
 print("written underwriting_bau_report.xlsx")
