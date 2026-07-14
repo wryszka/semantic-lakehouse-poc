@@ -97,20 +97,7 @@ lines = [
     ("Never SUM a ratio column in a pivot: recompute as SUM(claims_incurred) / SUM(earned_premium).", False),
     ("The additive columns (premiums, counts) are safe to total.", False),
     ("", False),
-    ("OPTION 2 - Databricks Excel Add-in (Public Preview since 2 March 2026)", True),
-    ("The add-in reads Unity Catalog tables AND Metric Views directly - no ODBC, no SQL needed.", False),
-    ("Users browse the catalog, pick the metric view, and pivot on governed measures in place.", False),
-    ("Supported: Excel on the web, Windows (Microsoft 365), macOS (Excel 2019+).", False),
-    ("", False),
-    ("IT deployment checklist (for central rollout to users who cannot install add-ins):", True),
-    ("  1. Workspace admin enables the Excel Connector preview in the Databricks workspace", False),
-    ("  2. Deploy centrally via the Microsoft 365 admin center (Marketplace app or custom manifest)", False),
-    ("  3. Microsoft Entra: grant admin consent to the Databricks enterprise application", False),
-    ("     (application ID aaec40b0-c0ae-4211-a98b-6fc160abb71b) if third-party consent is blocked", False),
-    ("  4. Allowlist the Databricks workspace URL on firewalls/proxies", False),
-    ("  5. Users need Databricks SQL entitlement + CAN USE on a SQL warehouse + SELECT on the views", False),
-    ("Auth is SSO via Entra - no tokens for end users.", False),
-    ("Setup doc: https://docs.databricks.com/aws/en/integrations/excel-setup", False),
+    ("OPTION 2 - Databricks Excel Add-in: see the 'Excel Add-in (Preview)' sheet for install and usage.", True),
     ("", False),
     ("About this demo: synthetic Bricksurance SE data, generated for demonstration purposes.", False),
 ]
@@ -119,6 +106,61 @@ for i, (txt, bold) in enumerate(lines, 1):
     if bold:
         c.font = Font(bold=True)
 ws3.column_dimensions["A"].width = 110
+
+
+# Sheet 4: the Databricks Excel Add-in - install and use
+ws4 = wb.create_sheet("Excel Add-in (Preview)")
+addin_lines = [
+    ("Databricks Excel Add-in - Public Preview since 2 March 2026", True),
+    ("Reads Unity Catalog tables AND Metric Views directly: browse the catalog, import, pivot,", False),
+    ("run optional SQL, and even write data back to Unity Catalog. No ODBC driver, no tokens - SSO sign-in.", False),
+    ("Supported: Excel on the web, Excel on Windows (Microsoft 365), Excel on macOS (2019+).", False),
+    ("", False),
+    ("BEFORE YOU START (once per workspace)", True),
+    ("A workspace admin must enable the Excel Connector preview; users need Databricks SQL access,", False),
+    ("CAN USE on a SQL warehouse, and SELECT on the data. Manifest/add-in file: see the setup doc below.", False),
+    ("", False),
+    ("INSTALL - Excel on the web", True),
+    ("  1. Open a workbook  >  Home tab  >  Add-ins  >  Advanced  >  Upload My Add-in", False),
+    ("  2. Upload the Databricks add-in file, then open the Databricks Add-in from the Add-ins menu", False),
+    ("  3. Sign in to Databricks (allow pop-ups); pick the workspace if more than one is configured", False),
+    ("", False),
+    ("INSTALL - Excel on Windows (desktop)", True),
+    ("  1. Create a folder, e.g. C:\\Manifest, and copy the add-in file into it", False),
+    ("  2. Share the folder (Properties > Sharing, read/write)", False),
+    ("  3. Excel: File > Options > Trust Center > Trust Center Settings > Trusted Add-in Catalogs", False),
+    ("     - add the folder path (\\\\YourComputerName\\Manifest), tick 'Show in Menu', restart Excel", False),
+    ("  4. Search 'Insert as Add-in' in the title bar, select the Databricks connector, click Add", False),
+    ("  5. Open the add-in and sign in", False),
+    ("", False),
+    ("INSTALL - Excel on macOS (desktop)", True),
+    ("  1. Copy the add-in file to ~/Library/Containers/com.microsoft.Excel/Data/Documents/wef", False),
+    ("  2. Restart Excel  >  Add-ins  >  My Add-ins  >  Databricks Add-in  >  sign in", False),
+    ("", False),
+    ("CONNECT AND USE (all platforms)", True),
+    ("  1. Home tab  >  Databricks Add-in  >  enter the workspace URL  >  Sign in (SSO)", False),
+    ("  2. Browse the catalog and import a table or METRIC VIEW - for this demo:", False),
+    ("     lr_dev_aws_us_catalog.semantic_lakehouse.mv_underwriting", False),
+    ("  3. Pivot on the imported data, or run a custom SQL query if you prefer", False),
+    ("  4. Data refreshes on demand from the same governed definitions as Genie and dashboards", False),
+    ("", False),
+    ("CENTRAL DEPLOYMENT (IT - for users who cannot install add-ins)", True),
+    ("  1. Deploy via the Microsoft 365 admin center (Marketplace app or custom manifest)", False),
+    ("  2. Microsoft Entra: grant admin consent to the Databricks enterprise application", False),
+    ("     (application ID aaec40b0-c0ae-4211-a98b-6fc160abb71b) if third-party consent is blocked", False),
+    ("  3. Allowlist the Databricks workspace URL on firewalls/proxies", False),
+    ("", False),
+    ("DOCS", True),
+    ("  Overview:   https://docs.databricks.com/aws/en/integrations/excel", False),
+    ("  Setup:      https://docs.databricks.com/aws/en/integrations/excel-setup", False),
+    ("  Import/query: https://docs.databricks.com/aws/en/integrations/excel-query", False),
+    ("  Write-back: https://docs.databricks.com/aws/en/integrations/excel-write-back", False),
+]
+for i, (txt, bold) in enumerate(addin_lines, 1):
+    cell = ws4.cell(row=i, column=1, value=txt)
+    if bold:
+        cell.font = Font(bold=True)
+ws4.column_dimensions["A"].width = 110
 
 wb.save("underwriting_bau_report.xlsx")
 print("written underwriting_bau_report.xlsx")
