@@ -1,0 +1,178 @@
+/// Legacy Tabular model (TMDL) — the migration SOURCE.
+/// This is the shape Tabular Editor produces when you export an SSAS / Power BI
+/// semantic model as TMDL. In a real engagement this folder is the client's own
+/// exported model; here it is synthetic, mirroring the star schema in
+/// lr_dev_aws_us_catalog.semantic_lakehouse so the translation is demonstrable.
+///
+/// The 8 measures are deliberately chosen to span the migration difficulty
+/// spectrum: clean (direct), pattern (time intelligence), and does-not-translate
+/// (calculation group, semi-additive). See ../migration/translation.md.
+
+model Model
+	culture: en-GB
+	defaultPowerBIDataSourceVersion: powerBI_V3
+
+/// Written premium, additive. The easy case.
+table FactPolicy
+	column PolicyNumber
+		dataType: string
+	column GrossPremium
+		dataType: decimal
+		summarizeBy: sum
+	column EarnedPremium
+		dataType: decimal
+		summarizeBy: sum
+	column DateKey
+		dataType: dateTime
+	column SectorKey
+		dataType: int64
+	column RegionKey
+		dataType: int64
+	column ChannelKey
+		dataType: int64
+
+	/// [1] CLEAN — direct SUM.
+	measure GWP = SUM(FactPolicy[GrossPremium])
+		formatString: #,0
+
+	/// [2] CLEAN — distinct count.
+	measure 'Policy Count' = DISTINCTCOUNT(FactPolicy[PolicyNumber])
+		formatString: #,0
+
+table FactClaims
+	column Paid
+		dataType: decimal
+		summarizeBy: sum
+	column OutstandingReserve
+		dataType: decimal
+		summarizeBy: sum
+	column DateKey
+		dataType: dateTime
+	column SectorKey
+		dataType: int64
+	column RegionKey
+		dataType: int64
+	column ChannelKey
+		dataType: int64
+
+	/// [3] CLEAN — sum of two additive columns.
+	measure Incurred = SUM(FactClaims[Paid]) + SUM(FactClaims[OutstandingReserve])
+		formatString: #,0
+
+	/// [4] CLEAN — measure composition. Translates to a self-contained expr
+	/// (numerator/denominator inlined) in the metric view.
+	measure 'Loss Ratio' = DIVIDE([Incurred], [GWP])
+		formatString: 0.0%
+
+	/// [5] PATTERN — time intelligence. TOTALYTD relies on the marked date
+	/// table + filter context; becomes a window measure in the metric view.
+	measure 'GWP YTD' = TOTALYTD([GWP], DimDate[Date])
+		formatString: #,0
+
+	/// [6] PATTERN — trailing 12 months.
+	measure 'GWP Rolling 12m' =
+			CALCULATE([GWP], DATESINPERIOD(DimDate[Date], MAX(DimDate[Date]), -12, MONTH))
+		formatString: #,0
+
+/// Reserve BALANCES at month-end — a position, not a flow. Semi-additive.
+table FactReserves
+	column Amount
+		dataType: decimal
+		summarizeBy: sum
+	column SnapshotDate
+		dataType: dateTime
+	column SectorKey
+		dataType: int64
+	column RegionKey
+		dataType: int64
+
+	/// [8] DOES-NOT-TRANSLATE (as written) — semi-additive. A naive SUM double-
+	/// counts across months. Must be re-modelled as a closing-position measure.
+	measure 'Open Reserves' =
+			CALCULATE(
+				SUM(FactReserves[Amount]),
+				LASTNONBLANK(DimDate[Date], CALCULATE(SUM(FactReserves[Amount])))
+			)
+		formatString: #,0
+
+table DimDate
+	dataCategory: Time
+	column Date
+		dataType: dateTime
+		isKey
+	column Year
+		dataType: int64
+	column Quarter
+		dataType: string
+	column Month
+		dataType: int64
+
+table DimSector
+	column SectorKey
+		dataType: int64
+		isKey
+	column Sector
+		dataType: string
+
+table DimRegion
+	column RegionKey
+		dataType: int64
+		isKey
+	column Region
+		dataType: string
+
+table DimChannel
+	column ChannelKey
+		dataType: int64
+		isKey
+	column Channel
+		dataType: string
+
+/// [7] DOES-NOT-TRANSLATE — calculation group. Applies YTD / PY / YoY% as a
+/// selectable modifier to ANY measure. Metric views have no calc-group concept;
+/// this explodes into explicit named measures (GWP YTD, GWP PY, GWP YoY %, …).
+table 'Time Calc'
+	calculationGroup
+
+		calculationItem YTD = TOTALYTD(SELECTEDMEASURE(), DimDate[Date])
+		calculationItem PY = CALCULATE(SELECTEDMEASURE(), SAMEPERIODLASTYEAR(DimDate[Date]))
+		calculationItem 'YoY %' =
+				DIVIDE(
+					SELECTEDMEASURE() - CALCULATE(SELECTEDMEASURE(), SAMEPERIODLASTYEAR(DimDate[Date])),
+					CALCULATE(SELECTEDMEASURE(), SAMEPERIODLASTYEAR(DimDate[Date]))
+				)
+
+	column 'Time Calculation'
+		dataType: string
+
+relationship FactPolicy_DimDate
+	fromColumn: FactPolicy.DateKey
+	toColumn: DimDate.Date
+
+relationship FactPolicy_DimSector
+	fromColumn: FactPolicy.SectorKey
+	toColumn: DimSector.SectorKey
+
+relationship FactPolicy_DimRegion
+	fromColumn: FactPolicy.RegionKey
+	toColumn: DimRegion.RegionKey
+
+relationship FactPolicy_DimChannel
+	fromColumn: FactPolicy.ChannelKey
+	toColumn: DimChannel.ChannelKey
+
+relationship FactClaims_DimDate
+	fromColumn: FactClaims.DateKey
+	toColumn: DimDate.Date
+
+relationship FactClaims_DimSector
+	fromColumn: FactClaims.SectorKey
+	toColumn: DimSector.SectorKey
+
+relationship FactReserves_DimDate
+	fromColumn: FactReserves.SnapshotDate
+	toColumn: DimDate.Date
+
+relationship FactReserves_DimSector
+	fromColumn: FactReserves.SectorKey
+	toColumn: DimSector.SectorKey

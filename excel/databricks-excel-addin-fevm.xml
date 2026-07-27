@@ -15,8 +15,7 @@
     <AppDomain>https://login.databricks.com</AppDomain>
 
     <!-- ADD WORKSPACE URLS AS SHOWN BELOW; PUT EACH WORKSPACE URL IN ITS OWN <AppDomain> TAG  -->
-    <!-- EXAMPLE: <AppDomain>https://fevm-lr-dev-aws-us.cloud.databricks.com</AppDomain> -->
-    
+    <AppDomain>https://fevm-lr-dev-aws-us.cloud.databricks.com</AppDomain>
   </AppDomains>
   <Hosts>
     <Host Name="Workbook"/>
